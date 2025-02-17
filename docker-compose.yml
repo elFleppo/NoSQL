@@ -1,0 +1,16 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb-container
+    ports:
+      - "27017:27017"  # Maps the MongoDB default port from container to host
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root  # Default root username
+      MONGO_INITDB_ROOT_PASSWORD: abc123...  # Default root password
+    volumes:
+      - mongo-data3:/data/db  # Persists MongoDB data
+
+volumes:
+  mongo-data3:
+    driver: local
+
