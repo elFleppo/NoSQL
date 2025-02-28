@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Nosql_Mongoengine.iml" filepath="$PROJECT_DIR$/.idea/Nosql_Mongoengine.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/FlaskNosql.iml" filepath="$PROJECT_DIR$/.idea/FlaskNosql.iml" />
     </modules>
   </component>
 </project>
