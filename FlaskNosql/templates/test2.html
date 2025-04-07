@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Data</title>
+    <script>
+        const entityFields = {
+            Composer: [
+                { label: 'Name', id: 'name', type: 'text', required: true },
+                { label: 'Nationality', id: 'nationality', type: 'text', required: true }
+            ],
+            Piece: [
+                { label: 'Piece Name', id: 'piece_name', type: 'text', required: true },
+                { label: 'Composer ID', id: 'composer_id', type: 'number', required: true },
+                { label: 'Orchestra ID', id: 'orchestra_id', type: 'number', required: true },
+                { label: 'Era', id: 'era', type: 'text', required: false }
+            ],
+            Orchestra: [
+                { label: 'Orchestra Name', id: 'orchestra_name', type: 'text', required: true },
+                { label: 'Conductor ID', id: 'conductor_id', type: 'number', required: false }
+            ],
+            Conductor: [
+                { label: 'First Name', id: 'firstname', type: 'text', required: true },
+                { label: 'Last Name', id: 'lastname', type: 'text', required: true },
+                { label: 'Age', id: 'age', type: 'number', required: true }
+            ],
+            Review: [
+                { label: 'Text Content', id: 'text_content', type: 'textarea', required: true },
+                { label: 'Score', id: 'score', type: 'number', required: true },
+                { label: 'Date', id: 'date', type: 'datetime-local', required: true }
+            ]
+        };
+
+        function updateForm() {
+            const entity = document.getElementById('entity').value;
+            const formFields = document.getElementById('formFields');
+            formFields.innerHTML = '';
+
+            if (!entityFields[entity]) return;
+            entityFields[entity].forEach(field => {
+                let inputField = field.type === 'textarea'
+                    ? `<label>${field.label}:</label><textarea id="${field.id}" ${field.required ? 'required' : ''}></textarea><br><br>`
+                    : `<label>${field.label}:</label><input type="${field.type}" id="${field.id}" ${field.required ? 'required' : ''}><br><br>`;
+                formFields.innerHTML += inputField;
+            });
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+            const entity = document.getElementById('entity').value;
+            if (!entityFields[entity]) return;
+
+            let data = {};
+            entityFields[entity].forEach(field => {
+                data[field.id] = document.getElementById(field.id).value;
+            });
+
+            const response = await fetch('/add_document', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            document.getElementById('response').innerText = JSON.stringify(result, null, 2);
+        }
+    </script>
+</head>
+<body>
+    <h2>Enter Data</h2>
+    <form onsubmit="submitForm(event)">
+        <label>Select Entity:</label>
+        <select id="entity" onchange="updateForm()" required>
+            <option value="">--Choose--</option>
+            <option value="Composer">Composer</option>
+            <option value="Piece">Piece</option>
+            <option value="Orchestra">Orchestra</option>
+            <option value="Conductor">Conductor</option>
+            <option value="Review">Review</option>
+        </select><br><br>
+
+        <div id="formFields"></div>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <h3>Response:</h3>
+    <pre id="response"></pre>
+</body>
+</html>
