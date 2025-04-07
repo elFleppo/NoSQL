@@ -13,7 +13,7 @@ print(db.list_collection_names())
 
 @app.route('/testing', methods=('GET', 'POST'))
 def index():
-    return render_template('index.html')
+    return render_template('test2.html')
 
 @app.route('/home', methods=('GET', 'POST'))
 def landingpage():
