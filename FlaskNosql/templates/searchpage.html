@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>W3.CSS Template</title>
+  <title>Music Database Search</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
@@ -11,7 +11,18 @@
   <style>
     body, h1, h2, h3, h4, h5, h6 {font-family: "Lato", sans-serif}
     .w3-bar, h1, button {font-family: "Montserrat", sans-serif}
-    .fa-anchor, .fa-coffee {font-size:200px}
+    .search-result {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .entity-section {
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -22,39 +33,25 @@
     <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-red" href="javascript:void(0);" onclick="myFunction()" title="Toggle Navigation Menu">
       <i class="fa fa-bars"></i>
     </a>
-    <a href="javascript:void(0)" onclick="changePage('home')" class="w3-bar-item w3-button w3-padding-large w3-white">Home</a>
-    <a href="javascript:void(0)" onclick="changePage('link1')" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Link 1</a>
-    <a href="javascript:void(0)" onclick="changePage('link2')" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Link 2</a>
-    <a href="javascript:void(0)" onclick="changePage('link3')" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Link 3</a>
-    <a href="javascript:void(0)" onclick="changePage('link4')" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Link 4</a>
-  </div>
-
-  <!-- Navbar on small screens -->
-  <div id="navDemo" class="w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large">
-    <a href="javascript:void(0)" onclick="changePage('link1')" class="w3-bar-item w3-button w3-padding-large">Link 1</a>
-    <a href="javascript:void(0)" onclick="changePage('link2')" class="w3-bar-item w3-button w3-padding-large">Link 2</a>
-    <a href="javascript:void(0)" onclick="changePage('link3')" class="w3-bar-item w3-button w3-padding-large">Link 3</a>
-    <a href="javascript:void(0)" onclick="changePage('link4')" class="w3-bar-item w3-button w3-padding-large">Link 4</a>
+    <a href="/home" class="w3-bar-item w3-button w3-padding-large">Home</a>
+    <a href="/testing" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Add Data</a>
+    <a href="/searchpage" class="w3-bar-item w3-button w3-padding-large w3-white">Search</a>
   </div>
 </div>
 
 <!-- Search Section -->
 <div class="w3-container w3-padding-64 w3-center">
-  <h1 class="w3-jumbo">Search</h1>
+  <h1 class="w3-jumbo">Music Database Search</h1>
   <div class="w3-margin-bottom">
-    <!-- Filters -->
-    <label for="filterCategory">Category:</label>
-    <select id="filterCategory" class="w3-select">
-      <option value="all" selected>All</option>
-      <option value="articles">Articles</option>
-      <option value="videos">Videos</option>
-      <option value="images">Images</option>
-    </select>
-    &nbsp;&nbsp;
-    <label for="filterSort">Sort by:</label>
-    <select id="filterSort" class="w3-select">
-      <option value="relevance" selected>Relevance</option>
-      <option value="date">Date</option>
+    <!-- Entity Type Filter -->
+    <label for="entityType">Search in:</label>
+    <select id="entityType" class="w3-select">
+      <option value="all" selected>All Entities</option>
+      <option value="Composer">Composers</option>
+      <option value="Piece">Pieces</option>
+      <option value="Orchestra">Orchestras</option>
+      <option value="Conductor">Conductors</option>
+      <option value="Review">Reviews</option>
     </select>
   </div>
   <div class="w3-container">
@@ -63,18 +60,10 @@
   </div>
 </div>
 
-<!-- Footer -->
-<footer class="w3-container w3-padding-64 w3-center w3-opacity">
-  <div class="w3-xlarge w3-padding-32">
-    <i class="fa fa-facebook-official w3-hover-opacity"></i>
-    <i class="fa fa-instagram w3-hover-opacity"></i>
-    <i class="fa fa-snapchat w3-hover-opacity"></i>
-    <i class="fa fa-pinterest-p w3-hover-opacity"></i>
-    <i class="fa fa-twitter w3-hover-opacity"></i>
-    <i class="fa fa-linkedin w3-hover-opacity"></i>
-  </div>
-  <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a></p>
-</footer>
+<!-- Results Section -->
+<div class="w3-container" id="searchResults">
+  <!-- Results will be displayed here -->
+</div>
 
 <script>
   // Toggle menu on small screens
@@ -87,30 +76,74 @@
     }
   }
 
-  // Simulate an API call when a nav link is clicked to change pages
-  function changePage(page) {
-    fetch('/api/changePage?page=' + encodeURIComponent(page))
-      .then(response => response.json())
-      .then(data => {
-        console.log('Page changed:', data);
-        // Add your logic to update the page content here
-      })
-      .catch(error => console.error('Error changing page:', error));
+  function displayResults(results) {
+    const resultsContainer = document.getElementById('searchResults');
+    resultsContainer.innerHTML = '';
+
+    if (Object.keys(results).length === 0) {
+      resultsContainer.innerHTML = '<div class="w3-container w3-center"><p>No results found</p></div>';
+      return;
+    }
+
+    for (const [entityType, items] of Object.entries(results)) {
+      if (items.length === 0) continue;
+
+      const entitySection = document.createElement('div');
+      entitySection.className = 'entity-section';
+      entitySection.innerHTML = `<h2>${entityType}s</h2>`;
+
+      items.forEach(item => {
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'search-result';
+        
+        let content = '';
+        switch(entityType) {
+          case 'Composer':
+            content = `<h3>${item.name}</h3><p>Nationality: ${item.nationality}</p>`;
+            break;
+          case 'Piece':
+            content = `<h3>${item.piece_name}</h3><p>Era: ${item.era || 'N/A'}</p>`;
+            break;
+          case 'Orchestra':
+            content = `<h3>${item.orchestra_name}</h3>`;
+            break;
+          case 'Conductor':
+            content = `<h3>${item.firstname} ${item.lastname}</h3><p>Age: ${item.age}</p>`;
+            break;
+          case 'Review':
+            content = `<h3>Review</h3><p>${item.text_content}</p><p>Score: ${item.score}</p>`;
+            break;
+        }
+
+        resultDiv.innerHTML = content;
+        entitySection.appendChild(resultDiv);
+      });
+
+      resultsContainer.appendChild(entitySection);
+    }
   }
 
-  // Perform a search with filters
-  function performSearch() {
-    var query = document.getElementById('searchInput').value;
-    var category = document.getElementById('filterCategory').value;
-    var sort = document.getElementById('filterSort').value;
-    fetch('/api/search?q=' + encodeURIComponent(query) + '&category=' + encodeURIComponent(category) + '&sort=' + encodeURIComponent(sort))
-      .then(response => response.json())
-      .then(data => {
-        console.log('Search results:', data);
-        // Add your logic to display search results here
-      })
-      .catch(error => console.error('Error during search:', error));
+  async function performSearch() {
+    const query = document.getElementById('searchInput').value;
+    const entityType = document.getElementById('entityType').value;
+
+    try {
+      const response = await fetch(`/search?q=${encodeURIComponent(query)}&entity_type=${encodeURIComponent(entityType)}`);
+      const results = await response.json();
+      displayResults(results);
+    } catch (error) {
+      console.error('Error during search:', error);
+      document.getElementById('searchResults').innerHTML = 
+        '<div class="w3-container w3-center"><p>Error performing search. Please try again.</p></div>';
+    }
   }
+
+  // Add event listener for Enter key
+  document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      performSearch();
+    }
+  });
 </script>
 
 </body>

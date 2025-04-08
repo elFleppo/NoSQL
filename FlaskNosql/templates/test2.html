@@ -12,13 +12,13 @@
             ],
             Piece: [
                 { label: 'Piece Name', id: 'piece_name', type: 'text', required: true },
-                { label: 'Composer ID', id: 'composer_id', type: 'number', required: true },
-                { label: 'Orchestra ID', id: 'orchestra_id', type: 'number', required: true },
+                { label: 'Composer', id: 'composer_id', type: 'select', required: true, entity: 'Composer' },
+                { label: 'Orchestra', id: 'orchestra_id', type: 'select', required: true, entity: 'Orchestra' },
                 { label: 'Era', id: 'era', type: 'text', required: false }
             ],
             Orchestra: [
                 { label: 'Orchestra Name', id: 'orchestra_name', type: 'text', required: true },
-                { label: 'Conductor ID', id: 'conductor_id', type: 'number', required: false }
+                { label: 'Conductor', id: 'conductor_id', type: 'select', required: false, entity: 'Conductor' }
             ],
             Conductor: [
                 { label: 'First Name', id: 'firstname', type: 'text', required: true },
@@ -32,18 +32,62 @@
             ]
         };
 
-        function updateForm() {
+        let entityData = {};
+
+        async function fetchEntityData(entityType) {
+            try {
+                const response = await fetch(`/get_entities/${entityType}`);
+                const data = await response.json();
+                console.log(`Fetched ${entityType} data:`, data);
+                entityData[entityType] = data;
+                return data;
+            } catch (error) {
+                console.error(`Error fetching ${entityType} data:`, error);
+                return [];
+            }
+        }
+
+        async function updateForm() {
             const entity = document.getElementById('entity').value;
             const formFields = document.getElementById('formFields');
             formFields.innerHTML = '';
 
             if (!entityFields[entity]) return;
-            entityFields[entity].forEach(field => {
-                let inputField = field.type === 'textarea'
-                    ? `<label>${field.label}:</label><textarea id="${field.id}" ${field.required ? 'required' : ''}></textarea><br><br>`
-                    : `<label>${field.label}:</label><input type="${field.type}" id="${field.id}" ${field.required ? 'required' : ''}><br><br>`;
+
+            for (const field of entityFields[entity]) {
+                let inputField;
+                if (field.type === 'select') {
+                    // Fetch data for the related entity if not already loaded
+                    if (!entityData[field.entity]) {
+                        await fetchEntityData(field.entity);
+                    }
+                    
+                    const options = entityData[field.entity].map(item => {
+                        let displayName = '';
+                        if (field.entity === 'Composer') {
+                            displayName = item.name;
+                        } else if (field.entity === 'Conductor') {
+                            displayName = `${item.firstname} ${item.lastname}`;
+                        } else if (field.entity === 'Orchestra') {
+                            displayName = item.orchestra_name;
+                        } else if (field.entity === 'Piece') {
+                            displayName = item.piece_name;
+                        }
+                        return `<option value="${item._id}">${displayName}</option>`;
+                    }).join('');
+
+                    inputField = `<label>${field.label}:</label>
+                        <select id="${field.id}" ${field.required ? 'required' : ''}>
+                            <option value="">--Select ${field.entity}--</option>
+                            ${options}
+                        </select><br><br>`;
+                } else if (field.type === 'textarea') {
+                    inputField = `<label>${field.label}:</label><textarea id="${field.id}" ${field.required ? 'required' : ''}></textarea><br><br>`;
+                } else {
+                    inputField = `<label>${field.label}:</label><input type="${field.type}" id="${field.id}" ${field.required ? 'required' : ''}><br><br>`;
+                }
                 formFields.innerHTML += inputField;
-            });
+            }
         }
 
         async function submitForm(event) {
@@ -56,7 +100,7 @@
                 data[field.id] = document.getElementById(field.id).value;
             });
 
-            const response = await fetch('/add_document', {
+            const response = await fetch(`/add_document?entity_type=${entity}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -64,6 +108,9 @@
 
             const result = await response.json();
             document.getElementById('response').innerText = JSON.stringify(result, null, 2);
+            
+            // Refresh the form to update dropdowns with new data
+            await updateForm();
         }
     </script>
 </head>
