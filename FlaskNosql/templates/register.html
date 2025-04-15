@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Register User - Music Database</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+    <style>
+        body,h1,h2,h3,h4,h5,h6 {font-family: "Lato", sans-serif}
+        .w3-bar,h1,button {font-family: "Montserrat", sans-serif}
+        .register-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #ffebee;
+            color: #c62828;
+            border-radius: 4px;
+        }
+        .success-message {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="w3-top">
+    <div class="w3-bar w3-red w3-card w3-left-align w3-large">
+        <a href="/home" class="w3-bar-item w3-button w3-padding-large">Home</a>
+        <a href="/logout" class="w3-bar-item w3-button w3-padding-large w3-right">Logout</a>
+    </div>
+</div>
+
+<!-- Register Form -->
+<div class="register-container">
+    <h2 class="w3-center">Register New User</h2>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                    <div class="flash-message {% if 'success' in message %}success-message{% endif %}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <form method="POST" action="{{ url_for('register') }}">
+        <div class="w3-section">
+            <label><b>Username</b></label>
+            <input class="w3-input w3-border w3-margin-bottom" type="text" name="username" required>
+            
+            <label><b>Password</b></label>
+            <input class="w3-input w3-border w3-margin-bottom" type="password" name="password" required>
+            
+            <label class="w3-checkbox">
+                <input type="checkbox" name="is_admin">
+                <span class="w3-checkmark"></span> Admin User
+            </label>
+            
+            <button class="w3-button w3-block w3-red w3-section w3-padding" type="submit">Register</button>
+        </div>
+    </form>
+</div>
+
+</body>
+</html> 

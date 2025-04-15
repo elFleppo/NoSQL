@@ -1,15 +1,166 @@
-from flask import Flask, render_template, request, url_for, redirect, jsonify
+from flask import Flask, render_template, request, url_for, redirect, jsonify, flash, session
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId
+import os
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+from config import config
+from models import User
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-uri = 'mongodb://root:abc123...@localhost:27017/'
-client = MongoClient(uri)
 
-db = client.get_database("Django_Music")
-print(db.list_collection_names())
+# Load configuration
+app.config.from_object(config['development'])
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
+# Construct MongoDB URI with authentication
+def get_mongo_uri():
+    if app.config['MONGO_USER'] and app.config['MONGO_PASSWORD']:
+        return f'mongodb://{app.config["MONGO_USER"]}:{app.config["MONGO_PASSWORD"]}@{app.config["MONGO_HOST"]}:{app.config["MONGO_PORT"]}/{app.config["MONGO_DB"]}?authSource=admin'
+    return f'mongodb://{app.config["MONGO_HOST"]}:{app.config["MONGO_PORT"]}/{app.config["MONGO_DB"]}'
+
+# Initialize MongoDB connection
+def init_mongodb():
+    try:
+        uri = get_mongo_uri()
+        client = MongoClient(uri)
+        
+        # Test the connection
+        client.admin.command('ping')
+        print("Successfully connected to MongoDB")
+        return client
+    except Exception as e:
+        print(f"Error connecting to MongoDB: {e}")
+        raise
+
+# Initialize MongoDB client
+client = init_mongodb()
+db = client[app.config["MONGO_DB"]]
+
+# User class for Flask-Login
+class User(UserMixin):
+    def __init__(self, user_data):
+        self.id = str(user_data['_id'])
+        self.username = user_data['username']
+        self.is_admin = user_data.get('is_admin', False)
+        self._authenticated = True
+
+    def is_authenticated(self):
+        return self._authenticated
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.id
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        user_data = db.users.find_one({'_id': ObjectId(user_id)})
+        if user_data:
+            return User(user_data)
+        return None
+    except Exception as e:
+        print(f"Error loading user: {e}")
+        return None
+
+# Routes for authentication
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('landingpage'))
+        
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user_data = db.users.find_one({'username': username})
+        if user_data and check_password_hash(user_data['password'], password):
+            user = User(user_data)
+            login_user(user, remember=True)  # Enable "remember me" functionality
+            flash('Login successful!', 'success')
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('landingpage'))
+        else:
+            flash('Invalid username or password', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    # If user is already logged in, redirect to home
+    if current_user.is_authenticated:
+        return redirect(url_for('landingpage'))
+        
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        is_admin = 'is_admin' in request.form
+        
+        # Check if username already exists
+        if db.users.find_one({'username': username}):
+            flash('Username already exists', 'danger')
+        else:
+            # Only allow admin creation if there are no users in the system
+            if is_admin and db.users.count_documents({}) > 0:
+                flash('Only the first user can be an admin', 'danger')
+                return redirect(url_for('register'))
+            
+            hashed_password = generate_password_hash(password)
+            user_data = {
+                'username': username,
+                'password': hashed_password,
+                'is_admin': is_admin
+            }
+            db.users.insert_one(user_data)
+            flash('User registered successfully. Please log in.', 'success')
+            return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    session.clear()  # Clear the session
+    flash('You have been logged out', 'info')
+    return redirect(url_for('login'))
+
+# Create admin user if not exists
+def create_admin_user():
+    try:
+        # Only create admin if no users exist
+        if db.users.count_documents({}) == 0:
+            hashed_password = generate_password_hash('admin123')
+            admin_user = {
+                'username': 'admin',
+                'password': hashed_password,
+                'is_admin': True
+            }
+            db.users.insert_one(admin_user)
+            print("Admin user created")
+    except Exception as e:
+        print(f"Error creating admin user: {e}")
+        raise
+
+# Call this function when the application starts
+create_admin_user()
 
 # Map entity types to their collections
 entity_collections = {
@@ -37,7 +188,10 @@ def get_entities(entity_type):
             return jsonify({"error": "Invalid entity type"}), 400
 
         collection = db[collection_name]
-        entities = list(collection.find({}, {'_id': 1, 'name': 1, 'firstname': 1, 'lastname': 1, 'orchestra_name': 1, 'piece_name': 1}))
+        if collection is not db.users:
+            entities = list(collection.find({}, {'_id': 1, 'name': 1, 'firstname': 1, 'lastname': 1, 'orchestra_name': 1, 'piece_name': 1}))
+        else:
+            entities = []
         
         # Convert ObjectId to string for JSON serialization
         for entity in entities:
