@@ -32,11 +32,135 @@ A Flask-based web application for managing a classical music database using Mong
    ```
 3. Access the application at `http://localhost:5000`
 
+## Importing Data into MongoDB Docker Container
+
+To import the sample data into your MongoDB Docker container:
+
+1. First, ensure your MongoDB container is running:
+   ```bash
+   docker ps
+   ```
+
+2. Copy the database dump to your container:
+   ```bash
+   docker cp ./dump <container_name>:/dump
+   ```
+
+3. Restore the dump inside the container:
+   ```bash
+   docker exec -it <container_name> mongorestore /dump
+   ```
+
+## API Endpoints
+
+### Authentication
+
+1. Login
+```bash
+curl -X POST http://localhost:5000/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=your_username&password=your_password"
+```
+
+2. Register
+```bash
+curl -X POST http://localhost:5000/register \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=new_user&password=new_password&is_admin=false"
+```
+
+3. Logout
+```bash
+curl -X GET http://localhost:5000/logout
+```
+
+4. Check Login Status
+```bash
+curl -X GET http://localhost:5000/check_login
+```
+
+5. Check Admin Status
+```bash
+curl -X GET http://localhost:5000/check_admin
+```
+
+### Data Operations
+
+1. Search
+```bash
+curl -X GET "http://localhost:5000/search?q=search_term&entity_type=all"
+```
+
+2. Get Entities by Type
+```bash
+curl -X GET "http://localhost:5000/get_entities/Composer"
+```
+
+3. Add Document
+```bash
+curl -X POST "http://localhost:5000/add_document?entity_type=Composer" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "John Doe", "nationality": "British"}'
+```
+
+4. Edit Document
+```bash
+curl -X POST "http://localhost:5000/edit_document/Composer/document_id" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Updated Name", "nationality": "Updated Nationality"}'
+```
+
+## Entity Types and Fields
+
+### Composer
+- name
+- nationality
+
+### Piece
+- piece_name
+- composer_id
+- orchestra_id
+- era
+
+### Orchestra
+- orchestra_name
+- conductor_id
+
+### Conductor
+- firstname
+- lastname
+- age
+
+### Review
+- text_content
+- score
+- date
+- user_id
+- piece_id
+
+## Database Structure
+
+The application uses MongoDB with the following collections:
+- composers
+- pieces
+- orchestras
+- conductors
+- reviews
+- users
+
+## Security Notes
+
+- All API endpoints except `/login`, `/register`, and `/check_login` require authentication
+- Only admin users can add or edit non-review entities
+- Regular users can only add reviews
+- Session cookies are set to expire after 1 day
+- CSRF protection is enabled through SameSite cookie policy
+
 ## Available Routes
 
 ### Web Pages
 - `/home` - Landing page with application overview
-- `/testing` - Form page for adding new data
+- `/add_document` - Form page for adding new data
 - `/searchpage` - Search interface for querying the database
 
 ### API Endpoints

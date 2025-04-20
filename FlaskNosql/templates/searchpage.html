@@ -34,8 +34,13 @@
       <i class="fa fa-bars"></i>
     </a>
     <a href="/home" class="w3-bar-item w3-button w3-padding-large">Home</a>
-    <a href="/testing" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Add Data</a>
+    <a href="/add_document" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Add Data</a>
     <a href="/searchpage" class="w3-bar-item w3-button w3-padding-large w3-white">Search</a>
+    <div class="w3-right">
+      <a href="/login" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="loginButton">Login</a>
+      <a href="/register" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="registerButton">Register</a>
+      <a href="/logout" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="logoutButton" style="display: none;">Logout</a>
+    </div>
   </div>
 </div>
 
@@ -115,6 +120,11 @@
             break;
         }
 
+        // Add edit button for admin users
+        if (window.isAdmin) {
+          content += `<button onclick="editDocument('${entityType}', '${item._id}')" class="w3-button w3-black w3-margin-top">Edit</button>`;
+        }
+
         resultDiv.innerHTML = content;
         entitySection.appendChild(resultDiv);
       });
@@ -122,6 +132,38 @@
       resultsContainer.appendChild(entitySection);
     }
   }
+
+  // Add edit function
+  function editDocument(entityType, documentId) {
+    window.location.href = `/edit_document/${entityType}/${documentId}`;
+  }
+
+  // Check if user is admin when page loads
+  document.addEventListener('DOMContentLoaded', async function() {
+    try {
+      const response = await fetch('/check_admin');
+      const data = await response.json();
+      window.isAdmin = data.is_admin;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      window.isAdmin = false;
+    }
+  });
+
+  // Check login status and update UI
+  document.addEventListener('DOMContentLoaded', async function() {
+    try {
+      const response = await fetch('/check_login');
+      const data = await response.json();
+      if (data.logged_in) {
+        document.getElementById('loginButton').style.display = 'none';
+        document.getElementById('registerButton').style.display = 'none';
+        document.getElementById('logoutButton').style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Error checking login status:', error);
+    }
+  });
 
   async function performSearch() {
     const query = document.getElementById('searchInput').value;

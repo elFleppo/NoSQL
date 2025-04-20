@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Edit Document - Music Database</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+    <style>
+        body,h1,h2,h3,h4,h5,h6 {font-family: "Lato", sans-serif}
+        .w3-bar,h1,button {font-family: "Montserrat", sans-serif}
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="w3-top">
+    <div class="w3-bar w3-red w3-card w3-left-align w3-large">
+        <a href="/home" class="w3-bar-item w3-button w3-padding-large w3-white">Home</a>
+        <a href="/searchpage" class="w3-bar-item w3-button w3-padding-large w3-hover-white">Back to Search</a>
+    </div>
+</div>
+
+<!-- Edit Form -->
+<div class="w3-container w3-padding-64">
+    <div class="w3-content">
+        <h1 class="w3-center">Edit Document</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="w3-panel w3-{{ category }} w3-display-container">
+                        <span onclick="this.parentElement.style.display='none'"
+                        class="w3-button w3-{{ category }} w3-large w3-display-topright">&times;</span>
+                        <p>{{ message }}</p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form id="editForm" class="w3-container">
+            <input type="hidden" id="entityType" value="{{ entity_type }}">
+            <input type="hidden" id="documentId" value="{{ document_id }}">
+            
+            {% for field, value in document.items() %}
+                {% if field != '_id' %}
+                    <div class="w3-section">
+                        <label>{{ field|title|replace('_', ' ') }}</label>
+                        <input class="w3-input w3-border" type="text" name="{{ field }}" value="{{ value }}" required>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            
+            <button type="submit" class="w3-button w3-black w3-padding-large w3-large w3-margin-top">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('editForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {};
+    const inputs = this.elements;
+    for (let i = 0; i < inputs.length; i++) {
+        if (inputs[i].type !== 'submit' && inputs[i].type !== 'hidden') {
+            formData[inputs[i].name] = inputs[i].value;
+        }
+    }
+    
+    const entityType = document.getElementById('entityType').value;
+    const documentId = document.getElementById('documentId').value;
+    
+    try {
+        const response = await fetch(`/edit_document/${entityType}/${documentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        if (response.ok) {
+            window.location.href = '/searchpage';
+        } else {
+            alert('Error updating document: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error updating document: ' + error);
+    }
+});
+</script>
+
+</body>
+</html> 

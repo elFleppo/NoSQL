@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Add Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <style>
+    body, h1, h2, h3, h4, h5, h6 {font-family: "Lato", sans-serif}
+    .w3-bar, h1, button {font-family: "Montserrat", sans-serif}
+    .form-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .form-field {
+      margin-bottom: 15px;
+    }
+    .form-field label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .form-field textarea {
+      height: 100px;
+    }
+    .response-container {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="w3-top">
+  <div class="w3-bar w3-red w3-card w3-left-align w3-large">
+    <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-red" href="javascript:void(0);" onclick="myFunction()" title="Toggle Navigation Menu">
+      <i class="fa fa-bars"></i>
+    </a>
+    <a href="/home" class="w3-bar-item w3-button w3-padding-large">Home</a>
+    <a href="/add_document" class="w3-bar-item w3-button w3-padding-large w3-white">Add Data</a>
+    <a href="/searchpage" class="w3-bar-item w3-button w3-padding-large w3-hover-white">Search</a>
+    <div class="w3-right">
+      <a href="/login" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="loginButton">Login</a>
+      <a href="/register" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="registerButton">Register</a>
+      <a href="/logout" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="logoutButton" style="display: none;">Logout</a>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="w3-container w3-red w3-center" style="padding:128px 16px">
+  <h1 class="w3-margin w3-jumbo">Add New Document</h1>
+  <p class="w3-xlarge">Add new entries to the music database</p>
+</header>
+
+<!-- Form Container -->
+<div class="w3-container w3-padding-64">
+  <div class="form-container">
+    <form onsubmit="submitForm(event)">
+      <div class="form-field">
+        <label>Select Entity Type:</label>
+        <select id="entity" class="w3-select" onchange="updateForm()" required>
+          <option value="">--Choose Entity Type--</option>
+          <option value="Composer">Composer</option>
+          <option value="Piece">Piece</option>
+          <option value="Orchestra">Orchestra</option>
+          <option value="Conductor">Conductor</option>
+          <option value="Review">Review</option>
+        </select>
+      </div>
+
+      <div id="formFields"></div>
+
+      <button type="submit" class="w3-button w3-red w3-padding-large w3-large w3-margin-top">Submit</button>
+    </form>
+
+    <div class="response-container" id="response"></div>
+  </div>
+</div>
+
+<script>
+  const entityFields = {
+    Composer: [
+      { label: 'Name', id: 'name', type: 'text', required: true },
+      { label: 'Nationality', id: 'nationality', type: 'text', required: true }
+    ],
+    Piece: [
+      { label: 'Piece Name', id: 'piece_name', type: 'text', required: true },
+      { label: 'Composer', id: 'composer_id', type: 'select', required: true, entity: 'Composer' },
+      { label: 'Orchestra', id: 'orchestra_id', type: 'select', required: true, entity: 'Orchestra' },
+      { label: 'Era', id: 'era', type: 'text', required: false }
+    ],
+    Orchestra: [
+      { label: 'Orchestra Name', id: 'orchestra_name', type: 'text', required: true },
+      { label: 'Conductor', id: 'conductor_id', type: 'select', required: false, entity: 'Conductor' }
+    ],
+    Conductor: [
+      { label: 'First Name', id: 'firstname', type: 'text', required: true },
+      { label: 'Last Name', id: 'lastname', type: 'text', required: true },
+      { label: 'Age', id: 'age', type: 'number', required: true }
+    ],
+    Review: [
+      { label: 'Text Content', id: 'text_content', type: 'textarea', required: true },
+      { label: 'Score', id: 'score', type: 'number', required: true },
+      { label: 'Date', id: 'date', type: 'datetime-local', required: true }
+    ]
+  };
+
+  let entityData = {};
+
+  async function fetchEntityData(entityType) {
+    try {
+      const response = await fetch(`/get_entities/${entityType}`);
+      const data = await response.json();
+      entityData[entityType] = data;
+      return data;
+    } catch (error) {
+      console.error(`Error fetching ${entityType} data:`, error);
+      return [];
+    }
+  }
+
+  async function updateForm() {
+    const entity = document.getElementById('entity').value;
+    const formFields = document.getElementById('formFields');
+    formFields.innerHTML = '';
+
+    if (!entityFields[entity]) return;
+
+    for (const field of entityFields[entity]) {
+      const fieldDiv = document.createElement('div');
+      fieldDiv.className = 'form-field';
+
+      let inputField;
+      if (field.type === 'select') {
+        if (!entityData[field.entity]) {
+          await fetchEntityData(field.entity);
+        }
+        
+        const options = entityData[field.entity].map(item => {
+          let displayName = '';
+          if (field.entity === 'Composer') {
+            displayName = item.name;
+          } else if (field.entity === 'Conductor') {
+            displayName = `${item.firstname} ${item.lastname}`;
+          } else if (field.entity === 'Orchestra') {
+            displayName = item.orchestra_name;
+          } else if (field.entity === 'Piece') {
+            displayName = item.piece_name;
+          }
+          return `<option value="${item._id}">${displayName}</option>`;
+        }).join('');
+
+        inputField = `
+          <label>${field.label}:</label>
+          <select id="${field.id}" class="w3-select" ${field.required ? 'required' : ''}>
+            <option value="">--Select ${field.entity}--</option>
+            ${options}
+          </select>`;
+      } else if (field.type === 'textarea') {
+        inputField = `
+          <label>${field.label}:</label>
+          <textarea id="${field.id}" class="w3-input" ${field.required ? 'required' : ''}></textarea>`;
+      } else {
+        inputField = `
+          <label>${field.label}:</label>
+          <input type="${field.type}" id="${field.id}" class="w3-input" ${field.required ? 'required' : ''}>`;
+      }
+
+      fieldDiv.innerHTML = inputField;
+      formFields.appendChild(fieldDiv);
+    }
+  }
+
+  async function submitForm(event) {
+    event.preventDefault();
+    const entity = document.getElementById('entity').value;
+    if (!entityFields[entity]) return;
+
+    let data = {};
+    entityFields[entity].forEach(field => {
+      data[field.id] = document.getElementById(field.id).value;
+    });
+
+    try {
+      const response = await fetch(`/add_document?entity_type=${entity}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+      document.getElementById('response').innerHTML = `
+        <h3>Response:</h3>
+        <pre>${JSON.stringify(result, null, 2)}</pre>`;
+      
+      // Refresh the form to update dropdowns with new data
+      await updateForm();
+    } catch (error) {
+      document.getElementById('response').innerHTML = `
+        <h3>Error:</h3>
+        <pre>${error.message}</pre>`;
+    }
+  }
+
+  // Toggle menu on small screens
+  function myFunction() {
+    var x = document.getElementById("navDemo");
+    if (x.className.indexOf("w3-show") == -1) {
+      x.className += " w3-show";
+    } else {
+      x.className = x.className.replace(" w3-show", "");
+    }
+  }
+
+  // Check login status and update UI
+  document.addEventListener('DOMContentLoaded', async function() {
+    try {
+      const response = await fetch('/check_login');
+      const data = await response.json();
+      if (data.logged_in) {
+        document.getElementById('loginButton').style.display = 'none';
+        document.getElementById('registerButton').style.display = 'none';
+        document.getElementById('logoutButton').style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Error checking login status:', error);
+    }
+  });
+</script>
+
+</body>
+</html> 

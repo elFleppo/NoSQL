@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Register User - Music Database</title>
+    <title>Register - Music Database</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
@@ -10,28 +10,6 @@
     <style>
         body,h1,h2,h3,h4,h5,h6 {font-family: "Lato", sans-serif}
         .w3-bar,h1,button {font-family: "Montserrat", sans-serif}
-        .register-container {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .flash-messages {
-            margin-bottom: 20px;
-        }
-        .flash-message {
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #ffebee;
-            color: #c62828;
-            border-radius: 4px;
-        }
-        .success-message {
-            background-color: #e8f5e9;
-            color: #2e7d32;
-        }
     </style>
 </head>
 <body>
@@ -39,41 +17,56 @@
 <!-- Navbar -->
 <div class="w3-top">
     <div class="w3-bar w3-red w3-card w3-left-align w3-large">
-        <a href="/home" class="w3-bar-item w3-button w3-padding-large">Home</a>
-        <a href="/logout" class="w3-bar-item w3-button w3-padding-large w3-right">Logout</a>
+        <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-red" href="javascript:void(0);" onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
+        <a href="/home" class="w3-bar-item w3-button w3-padding-large w3-white">Home</a>
     </div>
 </div>
 
+<!-- Header -->
+<header class="w3-container w3-red w3-center" style="padding:128px 16px">
+    <h1 class="w3-margin w3-jumbo">Register</h1>
+</header>
+
 <!-- Register Form -->
-<div class="register-container">
-    <h2 class="w3-center">Register New User</h2>
-    
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-messages">
-                {% for message in messages %}
-                    <div class="flash-message {% if 'success' in message %}success-message{% endif %}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-    
-    <form method="POST" action="{{ url_for('register') }}">
-        <div class="w3-section">
-            <label><b>Username</b></label>
-            <input class="w3-input w3-border w3-margin-bottom" type="text" name="username" required>
-            
-            <label><b>Password</b></label>
-            <input class="w3-input w3-border w3-margin-bottom" type="password" name="password" required>
-            
-            <label class="w3-checkbox">
-                <input type="checkbox" name="is_admin">
-                <span class="w3-checkmark"></span> Admin User
-            </label>
-            
-            <button class="w3-button w3-block w3-red w3-section w3-padding" type="submit">Register</button>
+<div class="w3-row-padding w3-padding-64 w3-container">
+    <div class="w3-content">
+        <div class="w3-twothird">
+            <form method="POST" class="w3-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="w3-panel w3-{{ category }} w3-display-container">
+                                <span onclick="this.parentElement.style.display='none'"
+                                class="w3-button w3-{{ category }} w3-large w3-display-topright">&times;</span>
+                                <p>{{ message }}</p>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="w3-section">
+                    <label>Username</label>
+                    <input class="w3-input w3-border" type="text" name="username" required>
+                </div>
+                
+                <div class="w3-section">
+                    <label>Password</label>
+                    <input class="w3-input w3-border" type="password" name="password" required>
+                </div>
+                
+                {% if current_user.is_authenticated and current_user.is_admin %}
+                <div class="w3-section">
+                    <label class="w3-checkbox">
+                        <input type="checkbox" name="is_admin">
+                        <span class="w3-checkmark"></span> Admin User
+                    </label>
+                </div>
+                {% endif %}
+                
+                <button type="submit" class="w3-button w3-black w3-padding-large w3-large w3-margin-top">Register</button>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 
 </body>

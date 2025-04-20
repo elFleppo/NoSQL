@@ -21,14 +21,22 @@ body,h1,h2,h3,h4,h5,h6 {font-family: "Lato", sans-serif}
   <div class="w3-bar w3-red w3-card w3-left-align w3-large">
     <a class="w3-bar-item w3-button w3-hide-medium w3-hide-large w3-right w3-padding-large w3-hover-white w3-large w3-red" href="javascript:void(0);" onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
     <a href="/home" class="w3-bar-item w3-button w3-padding-large w3-white">Home</a>
-    <a href="/testing" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Add Data</a>
+    <a href="/add_document" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Add Data</a>
     <a href="/searchpage" class="w3-bar-item w3-button w3-hide-small w3-padding-large w3-hover-white">Search</a>
+    <div class="w3-right">
+      <a href="/login" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="loginButton">Login</a>
+      <a href="/register" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="registerButton">Register</a>
+      <a href="/logout" class="w3-bar-item w3-button w3-padding-large w3-hover-white" id="logoutButton" style="display: none;">Logout</a>
+    </div>
   </div>
 
   <!-- Navbar on small screens -->
   <div id="navDemo" class="w3-bar-block w3-white w3-hide w3-hide-large w3-hide-medium w3-large">
-    <a href="/testing" class="w3-bar-item w3-button w3-padding-large">Add Data</a>
+    <a href="/add_document" class="w3-bar-item w3-button w3-padding-large">Add Data</a>
     <a href="/searchpage" class="w3-bar-item w3-button w3-padding-large">Search</a>
+    <a href="/login" class="w3-bar-item w3-button w3-padding-large" id="loginButtonMobile">Login</a>
+    <a href="/register" class="w3-bar-item w3-button w3-padding-large" id="registerButtonMobile">Register</a>
+    <a href="/logout" class="w3-bar-item w3-button w3-padding-large" id="logoutButtonMobile" style="display: none;">Logout</a>
   </div>
 </div>
 
@@ -93,6 +101,24 @@ function myFunction() {
     x.className = x.className.replace(" w3-show", "");
   }
 }
+
+// Check login status and update UI
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    const response = await fetch('/check_login');
+    const data = await response.json();
+    if (data.logged_in) {
+      document.getElementById('loginButton').style.display = 'none';
+      document.getElementById('registerButton').style.display = 'none';
+      document.getElementById('logoutButton').style.display = 'block';
+      document.getElementById('loginButtonMobile').style.display = 'none';
+      document.getElementById('registerButtonMobile').style.display = 'none';
+      document.getElementById('logoutButtonMobile').style.display = 'block';
+    }
+  } catch (error) {
+    console.error('Error checking login status:', error);
+  }
+});
 </script>
 
 </body>

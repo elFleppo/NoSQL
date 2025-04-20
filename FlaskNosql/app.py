@@ -8,6 +8,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from config import config
 from models import User
+from functools import wraps
+from flask_session import Session
+import shutil
+from datetime import timedelta
 
 # Load environment variables from .env file
 load_dotenv()
@@ -18,12 +22,28 @@ CORS(app)
 # Load configuration
 app.config.from_object(config['development'])
 
+# Initialize session
+Session(app)
+
+# Clean up old session files on startup
+session_dir = app.config['SESSION_FILE_DIR']
+if os.path.exists(session_dir):
+    shutil.rmtree(session_dir)
+os.makedirs(session_dir, exist_ok=True)
+
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+
+# Add session configuration
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
+app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP in development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Construct MongoDB URI with authentication
 def get_mongo_uri():
@@ -69,6 +89,9 @@ class User(UserMixin):
     def get_id(self):
         return self.id
 
+    def __repr__(self):
+        return f'<User {self.username}>'
+
 @login_manager.user_loader
 def load_user(user_id):
     try:
@@ -93,7 +116,8 @@ def login():
         user_data = db.users.find_one({'username': username})
         if user_data and check_password_hash(user_data['password'], password):
             user = User(user_data)
-            login_user(user, remember=True)  # Enable "remember me" functionality
+            login_user(user, remember=True)
+            session.permanent = True
             flash('Login successful!', 'success')
             next_page = request.args.get('next')
             return redirect(next_page or url_for('landingpage'))
@@ -113,15 +137,15 @@ def register():
         password = request.form['password']
         is_admin = 'is_admin' in request.form
         
+        # Only allow admin users to create other admin users
+        if is_admin and (not current_user.is_authenticated or not current_user.is_admin):
+            flash('Only administrators can create admin users', 'danger')
+            return redirect(url_for('register'))
+        
         # Check if username already exists
         if db.users.find_one({'username': username}):
             flash('Username already exists', 'danger')
         else:
-            # Only allow admin creation if there are no users in the system
-            if is_admin and db.users.count_documents({}) > 0:
-                flash('Only the first user can be an admin', 'danger')
-                return redirect(url_for('register'))
-            
             hashed_password = generate_password_hash(password)
             user_data = {
                 'username': username,
@@ -138,23 +162,29 @@ def register():
 @login_required
 def logout():
     logout_user()
-    session.clear()  # Clear the session
+    session.clear()
+    # Clear the session cookie
+    response = redirect(url_for('login'))
+    response.delete_cookie('session')
+    response.delete_cookie('remember_token')
     flash('You have been logged out', 'info')
-    return redirect(url_for('login'))
+    return response
 
 # Create admin user if not exists
 def create_admin_user():
     try:
-        # Only create admin if no users exist
-        if db.users.count_documents({}) == 0:
-            hashed_password = generate_password_hash('admin123')
+        admin_username = app.config['ADMIN_USERNAME']
+        admin_password = app.config['ADMIN_PASSWORD']
+        
+        if not db.users.find_one({'username': admin_username}):
+            hashed_password = generate_password_hash(admin_password)
             admin_user = {
-                'username': 'admin',
+                'username': admin_username,
                 'password': hashed_password,
                 'is_admin': True
             }
             db.users.insert_one(admin_user)
-            print("Admin user created")
+            print(f"Admin user '{admin_username}' created")
     except Exception as e:
         print(f"Error creating admin user: {e}")
         raise
@@ -201,19 +231,21 @@ def get_entities(entity_type):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/testing', methods=('GET', 'POST'))
-def index():
-    return render_template('test2.html')
+@app.route('/add_document', methods=('GET', 'POST'))
+def add_document_page():
+    return render_template('add_document.html')
 
 @app.route('/home', methods=('GET', 'POST'))
 def landingpage():
     return render_template('landingpage.html')
 
-@app.route('/searchpage', methods=['GET'])
+@app.route('/searchpage')
+@login_required
 def searchpage():
     return render_template('searchpage.html')
 
 @app.route('/search', methods=['GET'])
+@login_required
 def search():
     try:
         entity_type = request.args.get('entity_type', 'all')
@@ -272,7 +304,18 @@ def search():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Custom decorator for admin-only routes
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('Admin access required', 'danger')
+            return redirect(url_for('landingpage'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/add_document', methods=['POST'])
+@login_required
 def add_document():
     try:
         data = request.json
@@ -288,7 +331,61 @@ def add_document():
         if not collection_name:
             return jsonify({"error": "Invalid entity type"}), 400
 
+        # Only allow admins to add data for non-review entities
+        if entity_type != 'Review' and not current_user.is_admin:
+            return jsonify({"error": "Only administrators can add this type of data"}), 403
+
         result = db[collection_name].insert_one(data)
         return jsonify({"message": "Document added", "id": str(result.inserted_id)}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/check_admin')
+@login_required
+def check_admin():
+    return jsonify({'is_admin': current_user.is_admin})
+
+@app.route('/edit_document/<entity_type>/<document_id>', methods=['GET', 'POST'])
+@login_required
+def edit_document(entity_type, document_id):
+    if not current_user.is_admin:
+        flash('Only administrators can edit documents', 'danger')
+        return redirect(url_for('searchpage'))
+
+    collection_name = entity_collections.get(entity_type)
+    if not collection_name:
+        flash('Invalid entity type', 'danger')
+        return redirect(url_for('searchpage'))
+
+    if request.method == 'GET':
+        document = db[collection_name].find_one({'_id': ObjectId(document_id)})
+        if not document:
+            flash('Document not found', 'danger')
+            return redirect(url_for('searchpage'))
+        
+        return render_template('edit_form.html', 
+                            document=document,
+                            entity_type=entity_type,
+                            document_id=document_id)
+    
+    elif request.method == 'POST':
+        try:
+            data = request.json
+            if not data:
+                return jsonify({"error": "No data provided"}), 400
+
+            result = db[collection_name].update_one(
+                {'_id': ObjectId(document_id)},
+                {'$set': data}
+            )
+
+            if result.modified_count > 0:
+                return jsonify({"message": "Document updated successfully"}), 200
+            else:
+                return jsonify({"error": "No changes made"}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@app.route('/check_login')
+def check_login():
+    return jsonify({'logged_in': current_user.is_authenticated()})
