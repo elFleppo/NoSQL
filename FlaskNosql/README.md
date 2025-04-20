@@ -90,11 +90,18 @@ curl -X GET http://localhost:5000/check_admin
 ```bash
 curl -X GET "http://localhost:5000/search?q=search_term&entity_type=all"
 ```
+Parameters:
+- `q`: Search query string
+- `entity_type`: Type of entity to search (Composer, Piece, Orchestra, Conductor, Review, or 'all')
+Returns: JSON object containing search results grouped by entity type
 
 2. Get Entities by Type
 ```bash
 curl -X GET "http://localhost:5000/get_entities/Composer"
 ```
+Parameters:
+- `entity_type`: Type of entity to retrieve (Composer, Piece, Orchestra, Conductor, Review)
+Returns: JSON array of entities of the specified type
 
 3. Add Document
 ```bash
@@ -102,6 +109,10 @@ curl -X POST "http://localhost:5000/add_document?entity_type=Composer" \
   -H "Content-Type: application/json" \
   -d '{"name": "John Doe", "nationality": "British"}'
 ```
+Parameters:
+- `entity_type`: Type of entity being added (via query parameter)
+- JSON body: Document data to be added
+Returns: JSON object with success message and inserted document ID
 
 4. Edit Document
 ```bash
@@ -110,7 +121,9 @@ curl -X POST "http://localhost:5000/edit_document/Composer/document_id" \
   -d '{"name": "Updated Name", "nationality": "Updated Nationality"}'
 ```
 
-## Entity Types and Fields
+## Database Structure
+
+The application uses MongoDB with the following collections and their fields:
 
 ### Composer
 - name
@@ -137,16 +150,6 @@ curl -X POST "http://localhost:5000/edit_document/Composer/document_id" \
 - date
 - user_id
 - piece_id
-
-## Database Structure
-
-The application uses MongoDB with the following collections:
-- composers
-- pieces
-- orchestras
-- conductors
-- reviews
-- users
 
 ## Security Notes
 
@@ -180,38 +183,3 @@ The application uses MongoDB with the following collections:
     - `entity_type`: Type of entity being added (via query parameter)
     - JSON body: Document data to be added
   - Returns: JSON object with success message and inserted document ID
-
-## Entity Types and Fields
-
-### Composer
-- name
-- nationality
-
-### Piece
-- piece_name
-- composer_id
-- orchestra_id
-- era
-
-### Orchestra
-- orchestra_name
-- conductor_id
-
-### Conductor
-- firstname
-- lastname
-- age
-
-### Review
-- text_content
-- score
-- date
-
-## Database Structure
-
-The application uses MongoDB with the following collections:
-- composers
-- pieces
-- orchestras
-- conductors
-- reviews 

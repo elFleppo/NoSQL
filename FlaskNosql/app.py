@@ -77,6 +77,7 @@ class User(UserMixin):
         self.is_admin = user_data.get('is_admin', False)
         self._authenticated = True
 
+    @property
     def is_authenticated(self):
         return self._authenticated
 
@@ -388,4 +389,4 @@ def edit_document(entity_type, document_id):
 
 @app.route('/check_login')
 def check_login():
-    return jsonify({'logged_in': current_user.is_authenticated()})
+    return jsonify({'logged_in': current_user.is_authenticated if current_user.is_authenticated else False})
