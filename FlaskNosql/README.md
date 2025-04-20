@@ -7,30 +7,33 @@ A Flask-based web application for managing a classical music database using Mong
 - Python 3.x
 - MongoDB
 - Docker and Docker Compose (for containerized deployment)
+- Required Python packages (see requirements.txt)
 
-## Local Development Setup
+## Setup and Installation
+
+### Local Development Setup
 
 1. Clone the repository
-2. Install required Python packages:
+2. Install MongoDB and ensure it's running on your system
+3. Install required Python packages:
    ```bash
-   pip install flask flask-cors pymongo
+   pip install -r requirements.txt
    ```
-3. Start MongoDB locally
-4. Update the MongoDB connection string in `app.py` if needed
-5. Run the Flask application:
+4. Create a `.env` file in the project root using `.env-example` as a template:
    ```bash
-   python app.py
+   cp .env-example .env
    ```
-6. Access the application at `http://localhost:5000`
+   Then edit the `.env` file with your specific configuration.
 
-## Docker Deployment
 
-1. Ensure Docker and Docker Compose are installed
+### Docker Deployment
+
+1. Install Docker and Docker Compose
 2. Build and start the containers:
    ```bash
    docker-compose up --build
    ```
-3. Access the application at `http://localhost:5000`
+
 
 ## Importing Data into MongoDB Docker Container
 
@@ -50,7 +53,12 @@ To import the sample data into your MongoDB Docker container:
    ```bash
    docker exec -it <container_name> mongorestore /dump
    ```
-
+## Running the App
+1. Run the Flask application:
+   ```bash
+   python app.py
+   ```
+2. Access the application at `http://localhost:5000`
 ## API Endpoints
 
 ### Authentication
