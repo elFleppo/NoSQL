@@ -35,97 +35,28 @@ A Flask-based web application for managing a classical music database using Mong
    ```
 
 
-## Setting Up and Populating MongoDB
+## Importing Data into MongoDB Docker Container
 
-### Local Development Setup
+To import the sample data into your MongoDB Docker container:
 
-1. Ensure MongoDB is installed and running on your system
-2. Create a `.env` file using the template:
+1. First, ensure your MongoDB container is running:
    ```bash
-   cp .env-example .env
+   docker ps
    ```
-3. Edit the `.env` file with your MongoDB configuration:
-   ```
-   MONGO_USER=mongodb_admin
-   MONGO_PASSWORD=your_secure_password
-   MONGO_HOST=localhost
-   MONGO_PORT=27017
-   MONGO_DB=Django_Music
-   ```
-   Note: These values must match the MongoDB configuration in your `docker-compose.yml` file.
 
-### Populating the Database
-
-1. Install the required Python packages:
+2. Copy the database dump to your container:
    ```bash
-   pip install -r requirements.txt
+   docker cp ./dump <container_name>:/dump
    ```
 
-2. Run the populate_db.py script:
+3. Restore the dump inside the container (if you encounter an auth_error pass your user and password as parameters, aswell as --authenticationDatabase admin):
    ```bash
-   python populate_db.py
+   docker exec -it <container_name> mongorestore /dump
    ```
-   This script will:
-   - Connect to MongoDB using the credentials from your `.env` file
-   - Populate the database with sample data
-
-3. Verify the data was populated:
-   ```bash
-   mongosh "mongodb://mongodb_admin:your_secure_password@localhost:27017/Django_Music"
-   ```
-   Then run these commands in the MongoDB shell:
-   ```javascript
-   show collections
-   db.composers.find()
-   db.pieces.find()
-   db.orchestras.find()
-   db.conductors.find()
-   db.reviews.find()
-   ```
-
-### Important Note on MongoDB Configuration
-
-The MongoDB configuration is managed through Docker Compose. Any changes to:
-- MongoDB credentials
-- Database name
-- Host settings
-- Port settings
-
-must be synchronized between:
-1. The `.env` file
-2. The `docker-compose.yml` file
-3. The MongoDB connection settings in your application code
-
-Failure to keep these configurations in sync may result in connection errors or authentication failures.
-
-### Troubleshooting
-
-If you encounter any issues:
-
-1. Check MongoDB connection:
-   ```bash
-   mongosh "mongodb://mongodb_admin:your_secure_password@localhost:27017/admin" --eval "db.adminCommand('ping')"
-   ```
-
-2. Verify user permissions:
-   ```bash
-   mongosh "mongodb://mongodb_admin:your_secure_password@localhost:27017/admin" --eval "db.getUsers()"
-   ```
-
-3. Check database access:
-   ```bash
-   mongosh "mongodb://mongodb_admin:your_secure_password@localhost:27017/Django_Music" --eval "show collections"
-   ```
-
-4. Verify Docker Compose configuration:
-   ```bash
-   docker-compose config
-   ```
-
 ## Running the App
-1. Run the Flask application:
+1. Run the Flask application (from folder containing app.py):
    ```bash
-   python app.py
+   flask run
    ```
 2. Access the application at `http://localhost:5000`
 ## API Endpoints
