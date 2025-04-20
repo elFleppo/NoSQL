@@ -49,14 +49,14 @@ To import the sample data into your MongoDB Docker container:
    docker cp ./dump <container_name>:/dump
    ```
 
-3. Restore the dump inside the container:
+3. Restore the dump inside the container (if you encounter an auth_error pass your user and password as parameters, aswell as --authenticationDatabase admin):
    ```bash
    docker exec -it <container_name> mongorestore /dump
    ```
 ## Running the App
-1. Run the Flask application:
+1. Run the Flask application (from folder containing app.py):
    ```bash
-   python app.py
+   flask run
    ```
 2. Access the application at `http://localhost:5000`
 ## API Endpoints

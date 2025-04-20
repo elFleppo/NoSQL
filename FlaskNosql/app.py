@@ -14,7 +14,7 @@ import shutil
 from datetime import timedelta
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 app = Flask(__name__)
 CORS(app)
@@ -47,8 +47,12 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Construct MongoDB URI with authentication
 def get_mongo_uri():
+
     if app.config['MONGO_USER'] and app.config['MONGO_PASSWORD']:
         return f'mongodb://{app.config["MONGO_USER"]}:{app.config["MONGO_PASSWORD"]}@{app.config["MONGO_HOST"]}:{app.config["MONGO_PORT"]}/{app.config["MONGO_DB"]}?authSource=admin'
+    #This Elif is currently here because when working on a new machine i encountered an error while loading the .env file
+    elif app.config['MONGO_USER'] == None and app.config['MONGO_PASSWORD']:
+        return f'mongodb://root:{app.config["MONGO_PASSWORD"]}@{app.config["MONGO_HOST"]}:{app.config["MONGO_PORT"]}/{app.config["MONGO_DB"]}?authSource=admin'
     return f'mongodb://{app.config["MONGO_HOST"]}:{app.config["MONGO_PORT"]}/{app.config["MONGO_DB"]}'
 
 # Initialize MongoDB connection
@@ -68,7 +72,7 @@ def init_mongodb():
 # Initialize MongoDB client
 client = init_mongodb()
 db = client[app.config["MONGO_DB"]]
-
+print(get_mongo_uri())
 # User class for Flask-Login
 class User(UserMixin):
     def __init__(self, user_data):
@@ -174,8 +178,11 @@ def logout():
 # Create admin user if not exists
 def create_admin_user():
     try:
-        admin_username = app.config['ADMIN_USERNAME']
-        admin_password = app.config['ADMIN_PASSWORD']
+
+        admin_username = os.getenv('ADMIN_USERNAME')
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        print(admin_password)
+        print(admin_username)
         
         if not db.users.find_one({'username': admin_username}):
             hashed_password = generate_password_hash(admin_password)
